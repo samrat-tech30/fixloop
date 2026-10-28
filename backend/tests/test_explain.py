@@ -92,7 +92,7 @@ def test_samples_and_scenarios(client):
     assert "OOMKilled" in client.get("/samples/oomkilled").json()["log"]
     assert client.get("/samples/..%2F..%2Fapp").status_code == 404
     ids = {s["id"]: s["expected"] for s in client.get("/demo/scenarios").json()}
-    assert ids["missing-env"] == "hand-off" and len(ids) == 5
+    assert ids["missing-env"] == "hand-off" and len(ids) == 6
 
 
 def test_patterns_listed(client):

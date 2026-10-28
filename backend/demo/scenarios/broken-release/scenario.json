@@ -1,0 +1,5 @@
+{
+  "title": "Broken release (2 bugs)",
+  "expected": "auto-fix",
+  "description": "A new orders feature was merged without running the build: src/orders.ts imports dayjs, which is not in package.json, and reads item.quantity, but the Item type calls it qty. The agent needs two fixes and two rebuilds."
+}
