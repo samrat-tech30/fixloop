@@ -1,0 +1,5 @@
+{
+  "title": "Missing npm package",
+  "expected": "auto-fix",
+  "description": "src/index.ts imports axios, but axios is not in package.json."
+}

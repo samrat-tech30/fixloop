@@ -1,0 +1,30 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.db
+*.db-journal
+
+# agent sandbox copies
+backend/runs/
+
+# node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

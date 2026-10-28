@@ -1,0 +1,33 @@
+$ kubectl get pods -n analytics
+NAME                              READY   STATUS      RESTARTS      AGE
+report-worker-6b7c9d8f5-m4kzt     0/1     OOMKilled   3 (52s ago)   5m40s
+
+$ kubectl describe pod report-worker-6b7c9d8f5-m4kzt -n analytics
+Containers:
+  report-worker:
+    Image:          registry.acme.io/report-worker:3.0.2
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Wed, 28 Oct 2026 09:12:04 +0530
+      Finished:     Wed, 28 Oct 2026 09:13:51 +0530
+    Ready:          False
+    Restart Count:  3
+    Limits:
+      cpu:     500m
+      memory:  256Mi
+    Requests:
+      cpu:     250m
+      memory:  128Mi
+
+$ kubectl logs report-worker-6b7c9d8f5-m4kzt -n analytics --previous
+[worker] starting monthly report job id=rpt_2026_10
+[worker] loading 1,240,551 order rows into memory
+[worker] building pivot tables...
+
+<--- Last few GCs --->
+[1:0x5f1c2a0]   106412 ms: Mark-Compact 250.1 (258.6) -> 249.7 (258.9) MB, 1612.40 / 0.00 ms  (average mu = 0.112, current mu = 0.031) allocation failure; scavenge might not succeed
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory

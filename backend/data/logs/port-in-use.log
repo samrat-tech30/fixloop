@@ -1,0 +1,26 @@
+[2026-10-28 10:02:11] INFO  Deploying release 118 to app-server-02
+[2026-10-28 10:02:14] INFO  Pulled latest code (commit a91b2c4)
+[2026-10-28 10:02:31] INFO  npm ci completed
+[2026-10-28 10:02:32] INFO  Restarting service: pm2 restart billing-api
+[2026-10-28 10:02:33] billing-api > node server.js
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8080
+    at Server.setupListenHandle [as _listen2] (node:net:1904:16)
+    at listenInCluster (node:net:1952:12)
+    at Server.listen (node:net:2054:7)
+    at Function.listen (/srv/billing-api/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/srv/billing-api/server.js:41:5)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1931:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 8080
+}
+[2026-10-28 10:02:34] ERROR billing-api errored (exit code 1), restarts: 15
+[2026-10-28 10:02:34] ERROR Deployment health check failed after 30s

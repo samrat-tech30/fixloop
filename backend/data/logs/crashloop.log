@@ -1,0 +1,39 @@
+$ kubectl get pods -n orders
+NAME                          READY   STATUS             RESTARTS      AGE
+orders-api-7d9f8b6c5d-x2kqp   0/1     CrashLoopBackOff   6 (41s ago)   7m12s
+orders-db-0                   1/1     Running            0             3d
+
+$ kubectl describe pod orders-api-7d9f8b6c5d-x2kqp -n orders
+Name:         orders-api-7d9f8b6c5d-x2kqp
+Namespace:    orders
+Containers:
+  orders-api:
+    Image:          registry.acme.io/orders-api:2.3.1
+    Command:        node dist/server.js
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+    Restart Count:  6
+Events:
+  Type     Reason     Age                  From     Message
+  ----     ------     ----                 ----     -------
+  Normal   Pulled     3m (x5 over 7m)      kubelet  Container image "registry.acme.io/orders-api:2.3.1" already present on machine
+  Normal   Started    3m (x5 over 7m)      kubelet  Started container orders-api
+  Warning  BackOff    41s (x25 over 6m)    kubelet  Back-off restarting failed container orders-api in pod orders-api-7d9f8b6c5d-x2kqp
+
+$ kubectl logs orders-api-7d9f8b6c5d-x2kqp -n orders --previous
+node:internal/modules/cjs/loader:1228
+  throw err;
+  ^
+
+Error: Cannot find module '/app/dist/server.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at Module._load (node:internal/modules/cjs/loader:1051:27)
+    at node:internal/main/run_main_module:28:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v20.17.0

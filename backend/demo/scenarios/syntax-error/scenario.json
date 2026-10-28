@@ -1,0 +1,5 @@
+{
+  "title": "Syntax error",
+  "expected": "auto-fix",
+  "description": "src/utils.ts is missing the closing brace of formatPrice."
+}

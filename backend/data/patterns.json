@@ -1,0 +1,184 @@
+[
+  {
+    "id": "missing-npm-module",
+    "name": "Missing npm package",
+    "regex": "(?:Cannot find module|Can't resolve|Cannot find package) '(?P<module>(?:@[\\w.-]+/)?\\w[\\w.-]*)'",
+    "category": "dependency",
+    "severity": "critical",
+    "root_cause": "The code imports a package that is not listed in package.json, so it is not installed on the build server.",
+    "fix_steps": [
+      "Install the package: `npm install {module}`",
+      "Commit both package.json and package-lock.json",
+      "Redeploy"
+    ],
+    "auto_fixable": true
+  },
+  {
+    "id": "wrong-import-path",
+    "name": "Wrong import path",
+    "regex": "(?:Cannot find module|Can't resolve) '(?P<path>\\.{1,2}/[^']+)'",
+    "category": "build",
+    "severity": "critical",
+    "root_cause": "A relative import points to a file that does not exist, usually a typo or wrong letter case (Linux build servers are case-sensitive).",
+    "fix_steps": [
+      "Open the file that imports `{path}` and correct the path to the real file",
+      "Check the letter case of folder and file names",
+      "Run `npm run build` locally, then redeploy"
+    ],
+    "auto_fixable": true
+  },
+  {
+    "id": "typescript-type-error",
+    "name": "TypeScript type error",
+    "regex": "(?:error TS(?:2322|2345|2339|2741|2554)|Type error: )",
+    "category": "build",
+    "severity": "critical",
+    "root_cause": "The TypeScript compiler found a value whose type does not match what the code declares, so the production build stops.",
+    "fix_steps": [
+      "Open the file and line shown in the error",
+      "Change the value or the declared type so they match",
+      "Run `npx tsc --noEmit` locally until it passes, then redeploy"
+    ],
+    "auto_fixable": true
+  },
+  {
+    "id": "syntax-error",
+    "name": "Syntax error",
+    "regex": "(?:SyntaxError|error TS1005|error TS1128|error TS1109|Unexpected token|Unterminated string|'\\}' expected)",
+    "category": "build",
+    "severity": "critical",
+    "root_cause": "The code cannot be parsed: a bracket, quote or comma is missing or extra.",
+    "fix_steps": [
+      "Open the file and line in the error and look for a missing `}`, `)` or quote just before it",
+      "Format the file with your editor to spot the mismatch",
+      "Run the build locally, then redeploy"
+    ],
+    "auto_fixable": true
+  },
+  {
+    "id": "missing-env-var",
+    "name": "Missing environment variable",
+    "regex": "(?:\\b(?P<var>[A-Z][A-Z0-9_]{2,})\\b (?:is not defined|is not set|is required|is missing)|Missing (?:required )?(?:environment|env) variable)",
+    "category": "config",
+    "severity": "critical",
+    "root_cause": "The app needs a secret or setting from the environment that is not configured on the server. It works locally because it is in your local .env file.",
+    "fix_steps": [
+      "Add `{var}` in your hosting dashboard (e.g. Vercel/Render → Settings → Environment Variables) for the right environment",
+      "Never commit the value to git",
+      "Redeploy so the new variable is picked up"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "node-version-mismatch",
+    "name": "Node.js version mismatch",
+    "regex": "(?i)(?:The engine \"node\" is incompatible|Unsupported engine|EBADENGINE|requires? Node(?:\\.js)? (?:version )?[>=^~ ]*(?P<required>\\d+))",
+    "category": "config",
+    "severity": "warning",
+    "root_cause": "The build server runs a different Node.js version than the project or one of its packages requires.",
+    "fix_steps": [
+      "Set the Node version in the hosting settings (or `engines.node` in package.json) to the required major version",
+      "Match it locally with `nvm use`",
+      "Redeploy"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "npm-eresolve",
+    "name": "Dependency version conflict",
+    "regex": "(?:npm ERR! code ERESOLVE|ERESOLVE unable to resolve dependency tree|ERESOLVE could not resolve)",
+    "category": "dependency",
+    "severity": "warning",
+    "root_cause": "Two packages need incompatible versions of the same peer dependency, so npm refuses to install.",
+    "fix_steps": [
+      "Read the 'Found' and 'Could not resolve' lines to see which package conflicts",
+      "Upgrade or downgrade one of them to compatible versions",
+      "As a temporary workaround only: `npm install --legacy-peer-deps` and commit the lock file"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "port-in-use",
+    "name": "Port already in use",
+    "regex": "(?:EADDRINUSE[^\\n]*?:(?P<port>\\d{2,5})|[Aa]ddress already in use)",
+    "category": "runtime",
+    "severity": "critical",
+    "root_cause": "Another process is already listening on the port the app tries to use, or the app ignores the PORT the platform assigns.",
+    "fix_steps": [
+      "Find and stop the process using port {port} (`lsof -i :{port}` or `netstat -ano | findstr {port}`)",
+      "Make the app listen on `process.env.PORT` instead of a hard-coded port",
+      "Restart the service"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "db-connection-refused",
+    "name": "Database connection refused",
+    "regex": "(?:ECONNREFUSED (?P<host>[\\w.\\-]+):(?P<port>\\d+)|(?i:connection refused)|could not connect to server)",
+    "category": "network",
+    "severity": "critical",
+    "root_cause": "The app cannot reach its database: the database is down, the host/port is wrong for this environment, or a firewall blocks it.",
+    "fix_steps": [
+      "Check the database is running and reachable from the server at {host}:{port}",
+      "Make sure the production DATABASE_URL points to the production host, not localhost",
+      "Allow the server's IP in the database firewall / network rules, then restart"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "k8s-crashloop",
+    "name": "Kubernetes CrashLoopBackOff",
+    "regex": "(?:CrashLoopBackOff|Back-off restarting failed container)",
+    "category": "runtime",
+    "severity": "critical",
+    "root_cause": "The container starts and exits immediately, so Kubernetes keeps restarting it. The real error is in the previous container's logs.",
+    "fix_steps": [
+      "Read the crash reason: `kubectl logs <pod> --previous` and `kubectl describe pod <pod>`",
+      "Check the start command, required environment variables and config maps",
+      "Fix the cause, then `kubectl rollout restart deployment/<name>`"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "k8s-imagepull",
+    "name": "Image pull failed",
+    "regex": "(?:ImagePullBackOff|ErrImagePull|pull access denied|manifest unknown|repository does not exist)",
+    "category": "infra",
+    "severity": "critical",
+    "root_cause": "The cluster cannot download the container image: the name or tag is wrong, or the registry needs credentials the cluster does not have.",
+    "fix_steps": [
+      "Check the image name and tag exist in the registry (`docker pull <image>`)",
+      "If the registry is private, create an imagePullSecret and reference it in the deployment",
+      "Update the deployment and watch `kubectl get pods -w`"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "oom-killed",
+    "name": "Out of memory (OOMKilled)",
+    "regex": "(?:OOMKilled|[Ee]xit [Cc]ode:?\\s*137|JavaScript heap out of memory|Out of memory: Killed process)",
+    "category": "infra",
+    "severity": "critical",
+    "root_cause": "The process used more memory than its limit, so the system killed it (exit code 137).",
+    "fix_steps": [
+      "Raise the memory limit (e.g. `resources.limits.memory` in Kubernetes, or the instance size)",
+      "For Node builds, set `NODE_OPTIONS=--max-old-space-size=4096`",
+      "Check for memory leaks or very large in-memory data if it keeps happening"
+    ],
+    "auto_fixable": false
+  },
+  {
+    "id": "docker-copy-failed",
+    "name": "Docker COPY failed",
+    "regex": "(?:COPY failed|failed to compute cache key[^\\n]*not found|\"/(?P<path>[^\"]+)\": not found)",
+    "category": "build",
+    "severity": "critical",
+    "root_cause": "The Dockerfile copies a file that is not in the build context: wrong path, wrong build directory, or excluded by .dockerignore.",
+    "fix_steps": [
+      "Check that `{path}` exists relative to the folder you run `docker build` from",
+      "Check .dockerignore is not excluding it",
+      "Fix the COPY path or the build context and rebuild"
+    ],
+    "auto_fixable": false
+  }
+]

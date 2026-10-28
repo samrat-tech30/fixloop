@@ -1,0 +1,24 @@
+==> Deploying service "inventory-api" (render)
+==> Build successful
+==> Starting service with 'node dist/index.js'
+[boot] NODE_ENV=production
+[boot] Loading config from environment
+[boot] DATABASE_URL=postgres://inventory_app:Sup3rS3cretPass@localhost:5432/inventory
+[boot] STRIPE_SECRET_KEY=sk-live-9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c
+[boot] Connecting to database...
+[db] attempt 1/5 failed
+[db] attempt 2/5 failed
+[db] attempt 3/5 failed
+[db] attempt 4/5 failed
+[db] attempt 5/5 failed
+Error: connect ECONNREFUSED 127.0.0.1:5432
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1607:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+[boot] Fatal: could not connect to database, shutting down
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

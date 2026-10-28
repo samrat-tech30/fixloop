@@ -1,0 +1,26 @@
+$ docker build -t acme/notify-service:1.4.0 .
+[+] Building 3.8s (9/12)                                          docker:default
+ => [internal] load build definition from Dockerfile                        0.0s
+ => => transferring dockerfile: 512B                                        0.0s
+ => [internal] load metadata for docker.io/library/node:20-alpine           1.6s
+ => [internal] load .dockerignore                                           0.0s
+ => => transferring context: 89B                                            0.0s
+ => [1/7] FROM docker.io/library/node:20-alpine@sha256:2d07db07a2df6830718ae2a47db6fedce6745f5bcd174c398f2acdda90a11c03  0.0s
+ => [internal] load build context                                           0.1s
+ => => transferring context: 48.21kB                                        0.1s
+ => CACHED [2/7] WORKDIR /usr/src/app                                       0.0s
+ => CACHED [3/7] COPY package*.json ./                                      0.0s
+ => CACHED [4/7] RUN npm ci --omit=dev                                      0.0s
+ => ERROR [5/7] COPY config/production.json ./config/                       0.0s
+------
+ > [5/7] COPY config/production.json ./config/:
+------
+Dockerfile:9
+--------------------
+   7 |     RUN npm ci --omit=dev
+   8 |
+   9 | >>> COPY config/production.json ./config/
+  10 |     COPY src ./src
+  11 |     CMD ["node", "src/index.js"]
+--------------------
+ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref 6b1f0e2a-77c4-4b0e-9d1a-2c0f5f3e8a10::q1x9: "/config/production.json": not found

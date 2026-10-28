@@ -1,0 +1,10 @@
+[
+  {"name": "npm-missing-module", "title": "Next.js build: module not found"},
+  {"name": "crashloop", "title": "Kubernetes CrashLoopBackOff"},
+  {"name": "imagepull", "title": "Kubernetes ImagePullBackOff"},
+  {"name": "oomkilled", "title": "Kubernetes OOMKilled (exit 137)"},
+  {"name": "port-in-use", "title": "Node server: port already in use"},
+  {"name": "db-refused", "title": "API start-up: database connection refused (contains secrets)"},
+  {"name": "docker-copy", "title": "Docker build: COPY failed"},
+  {"name": "eresolve", "title": "npm install: dependency conflict (ERESOLVE)"}
+]

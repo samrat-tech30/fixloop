@@ -1,0 +1,5 @@
+{
+  "title": "Wrong import path",
+  "expected": "auto-fix",
+  "description": "src/index.ts imports ./componets/header (typo) instead of ./components/header."
+}

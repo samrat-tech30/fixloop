@@ -1,0 +1,24 @@
+2026-10-28T08:41:02.118Z Cloning github.com/acme/storefront (Branch: main, Commit: 4f2c9e1)
+2026-10-28T08:41:03.902Z Cloning completed: 1.784s
+2026-10-28T08:41:04.233Z Running "vercel build"
+2026-10-28T08:41:04.811Z Vercel CLI 41.2.0
+2026-10-28T08:41:05.120Z Installing dependencies...
+2026-10-28T08:41:14.676Z added 412 packages in 9s
+2026-10-28T08:41:14.702Z Detected Next.js version: 15.1.4
+2026-10-28T08:41:14.715Z Running "npm run build"
+2026-10-28T08:41:15.102Z > storefront@0.4.0 build
+2026-10-28T08:41:15.102Z > next build
+2026-10-28T08:41:16.880Z    ▲ Next.js 15.1.4
+2026-10-28T08:41:16.881Z    Creating an optimized production build ...
+2026-10-28T08:41:29.334Z Failed to compile.
+2026-10-28T08:41:29.335Z
+2026-10-28T08:41:29.335Z ./src/lib/payments.ts
+2026-10-28T08:41:29.335Z Module not found: Can't resolve 'razorpay'
+2026-10-28T08:41:29.336Z
+2026-10-28T08:41:29.336Z https://nextjs.org/docs/messages/module-not-found
+2026-10-28T08:41:29.336Z
+2026-10-28T08:41:29.336Z Import trace for requested module:
+2026-10-28T08:41:29.336Z ./src/app/checkout/page.tsx
+2026-10-28T08:41:29.402Z
+2026-10-28T08:41:29.402Z > Build failed because of webpack errors
+2026-10-28T08:41:29.488Z Error: Command "npm run build" exited with 1

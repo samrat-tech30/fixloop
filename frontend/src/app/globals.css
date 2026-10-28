@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Sky Ink tokens (FixLoop). Use as bg-sx-blue, text-sx-mute, border-sx-line, ... */
+@theme {
+  --color-sx-page: #ffffff;
+  --color-sx-ink: #0a0a0a;
+  --color-sx-mute: #52525b;
+  --color-sx-subtle: #71717a;
+  --color-sx-line: #e4e4e7;
+  --color-sx-field-line: #d4d4d8;
+  --color-sx-soft: #f4f4f5;
+  --color-sx-panel: #eef6ff;
+  --color-sx-sky: #cfe6ff;
+  --color-sx-blue: #2563eb;
+  --color-sx-blue-hover: #1d4ed8;
+  --color-sx-ring: #93c5fd;
+  --color-sx-marker: #ffe45c;
+  /* FixLoop status text colours (>= 4.5:1 on white) */
+  --color-sx-critical: #b91c1c;
+  --color-sx-warning: #a16207;
+  --color-sx-good: #15803d;
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--color-sx-page);
+  color: var(--color-sx-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-sx-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

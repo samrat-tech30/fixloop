@@ -1,0 +1,5 @@
+{
+  "title": "TypeScript type error",
+  "expected": "auto-fix",
+  "description": "src/config.ts assigns the string \"5\" to a number."
+}

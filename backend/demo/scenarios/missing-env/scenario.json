@@ -1,0 +1,5 @@
+{
+  "title": "Missing environment variable",
+  "expected": "hand-off",
+  "description": "The build checks API_KEY, which only exists on the developer's laptop. The agent must hand this to a human."
+}

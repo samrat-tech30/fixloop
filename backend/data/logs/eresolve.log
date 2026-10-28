@@ -1,0 +1,21 @@
+#12 [deps 4/4] RUN npm install
+#12 2.114 npm ERR! code ERESOLVE
+#12 2.116 npm ERR! ERESOLVE unable to resolve dependency tree
+#12 2.116 npm ERR!
+#12 2.116 npm ERR! While resolving: dashboard@1.2.0
+#12 2.116 npm ERR! Found: react@19.0.0
+#12 2.116 npm ERR! node_modules/react
+#12 2.116 npm ERR!   react@"^19.0.0" from the root project
+#12 2.116 npm ERR!
+#12 2.117 npm ERR! Could not resolve dependency:
+#12 2.117 npm ERR! peer react@"^16.8.0 || ^17.0.0 || ^18.0.0" from react-beautiful-dnd@13.1.1
+#12 2.117 npm ERR! node_modules/react-beautiful-dnd
+#12 2.117 npm ERR!   react-beautiful-dnd@"^13.1.1" from the root project
+#12 2.117 npm ERR!
+#12 2.117 npm ERR! Fix the upstream dependency conflict, or retry
+#12 2.117 npm ERR! this command with --force or --legacy-peer-deps
+#12 2.117 npm ERR! to accept an incorrect (and potentially broken) dependency resolution.
+#12 2.120 npm ERR! A complete log of this run can be found in: /root/.npm/_logs/2026-10-28T05_21_44_118Z-debug-0.log
+#12 ERROR: process "/bin/sh -c npm install" did not complete successfully: exit code: 1
+------
+ERROR: failed to solve: process "/bin/sh -c npm install" did not complete successfully: exit code: 1

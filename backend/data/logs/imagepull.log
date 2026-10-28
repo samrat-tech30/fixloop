@@ -1,0 +1,20 @@
+$ kubectl rollout status deployment/web -n shop
+Waiting for deployment "web" rollout to finish: 0 of 3 updated replicas are available...
+
+$ kubectl get pods -n shop
+NAME                   READY   STATUS             RESTARTS   AGE
+web-5c8d7f9b44-9hj2l   0/1     ImagePullBackOff   0          4m3s
+web-5c8d7f9b44-qq8vd   0/1     ErrImagePull       0          4m3s
+web-5c8d7f9b44-zt6mn   0/1     ImagePullBackOff   0          4m3s
+
+$ kubectl describe pod web-5c8d7f9b44-9hj2l -n shop
+Events:
+  Type     Reason     Age                    From               Message
+  ----     ------     ----                   ----               -------
+  Normal   Scheduled  4m3s                   default-scheduler  Successfully assigned shop/web-5c8d7f9b44-9hj2l to node-pool-a-3
+  Normal   Pulling    2m31s (x4 over 4m2s)   kubelet            Pulling image "ghcr.io/acme/shop-web:v1.8.0"
+  Warning  Failed     2m30s (x4 over 4m1s)   kubelet            Failed to pull image "ghcr.io/acme/shop-web:v1.8.0": rpc error: code = Unknown desc = failed to pull and unpack image "ghcr.io/acme/shop-web:v1.8.0": failed to resolve reference "ghcr.io/acme/shop-web:v1.8.0": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+  Warning  Failed     2m30s (x4 over 4m1s)   kubelet            Error: ErrImagePull
+  Normal   BackOff    2m4s (x6 over 4m)      kubelet            Back-off pulling image "ghcr.io/acme/shop-web:v1.8.0"
+  Warning  Failed     2m4s (x6 over 4m)      kubelet            Error: ImagePullBackOff
+error: deployment "web" exceeded its progress deadline
