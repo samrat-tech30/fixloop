@@ -224,13 +224,13 @@ def _loop(run_id: int, scenario: str, auto_approve: bool) -> str:
                         input={"steps": diag.fix_steps})
             return _finish(run_id, "handed_off", "Handed off to a human", True)
 
-        attempts += 1
-        db.update_run(run_id, attempts=attempts)
         files = _relevant_files(sb, diag, build.output)
         try:
             res = llm.chat_tools(_agent_messages(diag, clean_log.text, files, history), TOOLS, allow_local=False)
         except llm.LLMError as exc:
             return _finish(run_id, "failed", f"No LLM available to propose a fix: {exc}"[:300], False)
+        attempts += 1                              # every proposal counts, valid or not
+        db.update_run(run_id, attempts=attempts)
 
         name = "propose_edit"
         try:

@@ -1,9 +1,11 @@
-"""Fix mode routes. /demo/scenarios works; the rest are STUBS — build with docs/PROMPTS.md prompt 7."""
+"""Fix mode routes: scenarios, start an agent run, poll a run, approve/reject a patch."""
 import json
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
+from app import db
 from app.config import settings
+from app.core import agent, sandbox
 from app.models import (AgentRunRequest, AgentRunResponse, PatchDecision, PatchDecisionResponse, RunDetail,
                         Scenario)
 from app.security import require_api_key
@@ -27,22 +29,34 @@ def list_scenarios() -> list[Scenario]:
 
 @router.post("/agent/run", response_model=AgentRunResponse, status_code=202)
 def start_agent(body: AgentRunRequest, background: BackgroundTasks) -> AgentRunResponse:
-    """TODO (prompt 7): 409 if db.active_fix_run(); 404 if the scenario folder is missing;
-    run_id = db.create_run('fix', scenario=...); background.add_task(agent.run_agent, run_id, scenario,
-    body.auto_approve or settings.auto_approve); return {run_id}."""
     _require_enabled()
-    raise HTTPException(501, "Fix mode not built yet")
+    if db.active_fix_run():
+        raise HTTPException(409, "Another fix run is still in progress")
+    if not (sandbox.scenarios_dir() / body.scenario / "scenario.json").is_file():
+        raise HTTPException(404, "Unknown scenario")
+    run_id = db.create_run("fix", scenario=body.scenario)
+    background.add_task(agent.run_agent, run_id, body.scenario, body.auto_approve or settings.auto_approve)
+    return AgentRunResponse(run_id=run_id)
 
 
 @router.get("/runs/{run_id}", response_model=RunDetail)
 def get_run(run_id: int) -> RunDetail:
-    """TODO (prompt 7): combine db.get_run, db.list_steps, db.list_patches, db.list_diagnoses.
-    Works for explain runs too (no steps/patches)."""
-    raise HTTPException(501, "Fix mode not built yet")
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    return RunDetail(
+        id=run["id"], mode=run["mode"], scenario=run["scenario"], status=run["status"],
+        attempts=run["attempts"], steps=db.list_steps(run_id), patches=db.list_patches(run_id),
+        diagnoses=db.list_diagnoses(run_id), handoff_steps=run["handoff_steps"] or [])
 
 
 @router.post("/patches/{patch_id}/decision", response_model=PatchDecisionResponse)
 def decide(patch_id: int, body: PatchDecision) -> PatchDecisionResponse:
-    """TODO (prompt 7): agent.decide_patch(patch_id, body.approve); 404 unknown patch; 409 not pending."""
     _require_enabled()
-    raise HTTPException(501, "Fix mode not built yet")
+    try:
+        status = agent.decide_patch(patch_id, body.approve)
+    except LookupError:
+        raise HTTPException(404, "Patch not found") from None
+    except ValueError:
+        raise HTTPException(409, "Patch is not pending") from None
+    return PatchDecisionResponse(status=status)

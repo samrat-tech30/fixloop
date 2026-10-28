@@ -150,3 +150,14 @@ def test_missing_package_end_to_end(fake_llm, monkeypatch):
     assert db.get_run(run_id)["status"] == "fixed", steps
     pkg = json.loads((settings.runs_dir / str(run_id) / "package.json").read_text())
     assert "axios" in pkg["dependencies"]
+
+
+def test_no_llm_fails_without_counting_an_attempt(fake_llm, monkeypatch):
+    from app.core import llm
+    _fake_build(monkeypatch, [TS_ERR])
+    fake_llm.reply = llm.LLMError("down")
+    run_id = db.create_run("fix", scenario="wrong-import")
+    agent.run_agent(run_id, "wrong-import", auto_approve=True)
+    run = db.get_run(run_id)
+    assert run["status"] == "failed" and run["attempts"] == 0
+    assert "No LLM" in db.list_steps(run_id)[-1]["summary"]
