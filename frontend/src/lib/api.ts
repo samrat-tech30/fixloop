@@ -9,6 +9,9 @@ import type {
   Scenario,
   Stats,
 } from "./types";
+import { demoMode, mockRequest } from "./mock";
+
+export { demoMode };
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -16,12 +19,39 @@ export class ApiError extends Error {
   }
 }
 
+// Backend down (502) or route not built yet (501): answer from local demo fixtures and flag it,
+// so the UI can say "Demo data" instead of pretending the result is real.
+const DEMO_STATUSES = [501, 502];
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function fromMock<T>(path: string, init?: RequestInit): Promise<T> {
+  demoMode.set(true);
+  if (path.startsWith("analyze")) await wait(1400);
+  try {
+    return mockRequest(path, init) as T;
+  } catch (e) {
+    throw new ApiError(409, e instanceof Error ? e.message : "Demo request failed");
+  }
+}
+
+// After the backend is seen offline, skip it for a few seconds so polling doesn't spam 502s.
+let offlineUntil = 0;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/proxy/${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    cache: "no-store",
-  });
+  if (Date.now() < offlineUntil) return fromMock<T>(path, init);
+  let res: Response;
+  try {
+    res = await fetch(`/api/proxy/${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      cache: "no-store",
+    });
+  } catch {
+    offlineUntil = Date.now() + 10_000;
+    return fromMock<T>(path, init);
+  }
+  if (res.status === 502) offlineUntil = Date.now() + 10_000;
+  if (DEMO_STATUSES.includes(res.status)) return fromMock<T>(path, init);
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {
@@ -34,6 +64,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (res.status === 429) message = "Too many requests. Wait a few seconds and try again.";
     throw new ApiError(res.status, message);
   }
+  demoMode.set(false);
   return res.json() as Promise<T>;
 }
 

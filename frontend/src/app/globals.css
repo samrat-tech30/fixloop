@@ -45,6 +45,43 @@ h3 {
   line-height: 1.1;
 }
 
+/* Highlighter: yellow ink swept left-to-right once when a result lands. */
+.marker {
+  background-image: linear-gradient(var(--color-sx-marker), var(--color-sx-marker));
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 0.15em;
+  border-radius: 3px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .marker {
+    animation: marker-sweep 800ms cubic-bezier(0.65, 0, 0.35, 1) both;
+    animation-delay: var(--marker-delay, 300ms);
+  }
+}
+@keyframes marker-sweep {
+  from { background-size: 0% 100%; }
+  to { background-size: 100% 100%; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.rise {
+  animation: rise 200ms ease-out both;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-sx-ring);
   outline-offset: 2px;
