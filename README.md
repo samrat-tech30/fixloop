@@ -53,7 +53,7 @@ Open the **repo root** in Claude Code so it reads `CLAUDE.md` and the skills in 
 | Part | State |
 |---|---|
 | Config, security helpers, SQLite schema + seeding | Working |
-| LLM router (Groq → Gemini → Ollama) | Working, needs keys |
+| LLM router (Groq → OpenAI → Gemini → OpenRouter → Ollama) | Working, needs keys |
 | Preprocessor, pattern matcher (13 patterns), diagnoser | Working |
 | `POST /analyze`, `POST /feedback`, `GET /stats`, `GET /patterns`, `GET /health` | Working |
 | Sample logs (8) + demo project with 5 bug scenarios | Ready |

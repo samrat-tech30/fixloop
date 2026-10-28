@@ -12,8 +12,10 @@ class Settings(BaseSettings):
     # LLM providers
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4.1-mini"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.5-flash"
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-oss-120b"
     ollama_base_url: str = "http://localhost:11434/v1"

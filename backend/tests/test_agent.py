@@ -152,12 +152,23 @@ def test_missing_package_end_to_end(fake_llm, monkeypatch):
     assert "axios" in pkg["dependencies"]
 
 
-def test_no_llm_fails_without_counting_an_attempt(fake_llm, monkeypatch):
-    from app.core import llm
+def test_no_provider_fails_without_counting_an_attempt(fake_llm, monkeypatch):
     _fake_build(monkeypatch, [TS_ERR])
-    fake_llm.reply = llm.LLMError("down")
+    monkeypatch.setattr(settings, "groq_api_key", "")      # nothing configured for chat_tools
     run_id = db.create_run("fix", scenario="wrong-import")
     agent.run_agent(run_id, "wrong-import", auto_approve=True)
     run = db.get_run(run_id)
     assert run["status"] == "failed" and run["attempts"] == 0
     assert "No LLM" in db.list_steps(run_id)[-1]["summary"]
+
+
+@pytest.mark.parametrize("tool_reply", [Exception("provider down"), ("I would install axios", [])])
+def test_llm_failure_or_no_tool_call_is_a_failed_attempt(fake_llm, monkeypatch, tool_reply):
+    _fake_build(monkeypatch, [TS_ERR] * 5)
+    fake_llm.reply = lambda _p, kw: tool_reply if "tools" in kw else _diag()
+    run_id = db.create_run("fix", scenario="wrong-import")
+    agent.run_agent(run_id, "wrong-import", auto_approve=True)
+    run = db.get_run(run_id)
+    assert run["status"] == "failed" and run["attempts"] == settings.agent_max_attempts
+    failed = [st for st in db.list_steps(run_id) if st["action"] == "propose_edit" and not st["ok"]]
+    assert len(failed) == settings.agent_max_attempts

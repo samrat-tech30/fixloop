@@ -227,10 +227,17 @@ def _loop(run_id: int, scenario: str, auto_approve: bool) -> str:
         files = _relevant_files(sb, diag, build.output)
         try:
             res = llm.chat_tools(_agent_messages(diag, clean_log.text, files, history), TOOLS, allow_local=False)
-        except llm.LLMError as exc:
+        except llm.NoProviderError as exc:
             return _finish(run_id, "failed", f"No LLM available to propose a fix: {exc}"[:300], False)
+        except llm.LLMError as exc:                # every provider failed or sent no tool call
+            res = None
+            reason = str(exc)[:300]
         attempts += 1                              # every proposal counts, valid or not
         db.update_run(run_id, attempts=attempts)
+        if res is None:
+            db.add_step(run_id, "propose_edit", summary=f"No fix proposed: {reason}", ok=False)
+            history.append(f"Attempt {attempts}: no tool call was made. You must call exactly one tool.")
+            continue
 
         name = "propose_edit"
         try:
@@ -242,7 +249,7 @@ def _loop(run_id: int, scenario: str, auto_approve: bool) -> str:
                         ok=False)
             history.append(f"Attempt {attempts}: your tool call was invalid ({reason}).")
             continue
-        db.add_step(run_id, name, summary=f"Proposed: {what} (patch #{patch_id})", input=args)
+        db.add_step(run_id, name, summary=f"Proposed via {res.provider}: {what} (patch #{patch_id})", input=args)
 
         if not _wait_for_decision(run_id, patch_id, auto_approve):
             return _finish(run_id, "failed", f"Patch #{patch_id} was rejected or timed out", False)

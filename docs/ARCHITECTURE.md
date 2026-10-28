@@ -17,7 +17,7 @@ flowchart TD
     APR["Human approval<br/>patch diff"]
     SB["Sandbox runner<br/>copy of demo project, whitelisted commands, timeout"]
   end
-  LLM["LLM router<br/>Groq → Gemini → Ollama (local)"]
+  LLM["LLM router<br/>Groq → OpenAI → Gemini → OpenRouter → Ollama (local)"]
   DB[("SQLite<br/>runs, diagnoses, agent_steps, patches, feedback, error_patterns")]
 
   UI --> PX --> API

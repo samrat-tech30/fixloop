@@ -1,6 +1,6 @@
 """LLM router: one OpenAI-compatible client per provider, tried in order.
 
-Order: Groq -> Gemini -> OpenRouter -> Ollama (local, offline). Providers without a key are skipped.
+Order: Groq -> OpenAI -> Gemini -> OpenRouter -> Ollama (local, offline). Providers without a key are skipped.
 Every call returns which provider answered so the UI can show an "offline" badge.
 """
 from __future__ import annotations
@@ -39,11 +39,18 @@ class LLMError(RuntimeError):
     """Raised when every provider failed."""
 
 
+class NoProviderError(LLMError):
+    """Raised when no provider is configured for the call at all."""
+
+
 def all_providers() -> list[Provider]:
     s = settings
     out: list[Provider] = []
     if s.groq_api_key:
         out.append(Provider("groq", "https://api.groq.com/openai/v1", s.groq_api_key, s.groq_model, s.llm_timeout_seconds))
+    if s.openai_api_key:
+        out.append(Provider("openai", "https://api.openai.com/v1", s.openai_api_key, s.openai_model,
+                            s.llm_timeout_seconds))
     if s.gemini_api_key:
         out.append(Provider("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/",
                             s.gemini_api_key, s.gemini_model, s.llm_timeout_seconds))
@@ -72,19 +79,22 @@ def _call(provider: Provider, **kwargs: Any) -> tuple[str, list[dict[str, Any]]]
     try:
         resp = client.chat.completions.create(model=provider.model, **kwargs)
     except BadRequestError:
-        if "response_format" not in kwargs:
+        if kwargs.get("tool_choice") == "required":
+            kwargs = {**kwargs, "tool_choice": "auto"}          # provider may not support forced tool calls
+        elif "response_format" in kwargs:
+            kwargs = {k: v for k, v in kwargs.items() if k != "response_format"}  # or JSON mode
+        else:
             raise
-        kwargs = {k: v for k, v in kwargs.items() if k != "response_format"}  # provider may not support JSON mode
         resp = client.chat.completions.create(model=provider.model, **kwargs)
     msg = resp.choices[0].message
     calls = [{"name": tc.function.name, "arguments": tc.function.arguments or "{}"} for tc in (msg.tool_calls or [])]
     return msg.content or "", calls
 
 
-def _run(kwargs: dict[str, Any], allow_local: bool, force: str | None) -> LLMResult:
+def _run(kwargs: dict[str, Any], allow_local: bool, force: str | None, need_tool: bool = False) -> LLMResult:
     provs = _select(allow_local, force)
     if not provs:
-        raise LLMError("No LLM provider configured")
+        raise NoProviderError("No LLM provider configured")
     errors: list[str] = []
     for p in provs:
         start = time.perf_counter()
@@ -92,6 +102,8 @@ def _run(kwargs: dict[str, Any], allow_local: bool, force: str | None) -> LLMRes
             content, calls = _call(p, **kwargs)
             if not content and not calls:
                 raise LLMError("empty response")
+            if need_tool and not calls:
+                raise LLMError("no tool call in reply")         # counts as this provider failing
             return LLMResult(content, p.name, p.model, int((time.perf_counter() - start) * 1000), calls)
         except Exception as exc:  # noqa: BLE001 — any provider failure means "try the next one"
             log.warning("LLM provider %s failed: %s", p.name, type(exc).__name__)
@@ -100,14 +112,15 @@ def _run(kwargs: dict[str, Any], allow_local: bool, force: str | None) -> LLMRes
 
 
 def chat_json(messages: list[dict[str, str]], *, allow_local: bool = True, force_provider: str | None = None,
-              temperature: float = 0.1, max_tokens: int = 1200) -> LLMResult:
+              temperature: float = 0.1, max_tokens: int = 4000) -> LLMResult:
     """Chat call that asks for a single JSON object in `content`."""
     return _run({"messages": messages, "temperature": temperature, "max_tokens": max_tokens,
                  "response_format": {"type": "json_object"}}, allow_local, force_provider)
 
 
 def chat_tools(messages: list[dict[str, Any]], tools: list[dict[str, Any]], *, allow_local: bool = False,
-               temperature: float = 0.1, max_tokens: int = 1500) -> LLMResult:
-    """Chat call that must answer with a tool call (used by the Fix-mode agent)."""
+               temperature: float = 0.1, max_tokens: int = 4000) -> LLMResult:
+    """Chat call that must answer with a tool call (used by the Fix-mode agent).
+    A provider that replies without one is skipped like a failed provider."""
     return _run({"messages": messages, "tools": tools, "tool_choice": "required", "temperature": temperature,
-                 "max_tokens": max_tokens}, allow_local, None)
+                 "max_tokens": max_tokens}, allow_local, None, need_tool=True)
