@@ -1,71 +1,77 @@
 # FixLoop — Deployment Troubleshooting Agent
 
-TCS Technology Day hackathon, BMSCE, 28 Oct 2026. Problem statement: *IT Application Maintenance — Deployment Issue Troubleshooting Assistant*.
+TCS Technology Day hackathon, BMSCE, 28 Oct 2026 · *IT Application Maintenance — Deployment Issue Troubleshooting Assistant*.
 
-FixLoop is a **single-agent** troubleshooting assistant. Paste a failed deployment log and it explains the root cause in plain English and recommends fixes (**Explain mode**). Point it at a broken project and it runs the build, diagnoses, proposes a code change, applies it after human approval, and re-runs the build until it passes or hands off to a human (**Fix mode**).
+## Problem
 
-Full architecture and build plan (shared doc): https://claude.ai/artifact/WCvPfrkBfNiTwMkDaEVxEa
+A failed deploy produces hundreds of noisy log lines. Engineers lose time finding the one line that matters, working out why it failed, and deciding what to change — and the same handful of failures (missing packages, bad imports, OOM kills, missing env vars, port clashes) repeat across teams.
+
+## Solution
+
+FixLoop is a **single-agent** troubleshooting assistant with two modes:
+
+- **Explain** — paste a log, get a plain-English summary, root cause, severity, confidence, the evidence lines and concrete fix steps, with 👍/👎 feedback.
+- **Fix** — FixLoop runs a project's build in a sandbox, diagnoses the failure, proposes one patch (file edit or `npm install`), applies it after approval, and rebuilds until it passes. Anything it must not touch (secrets, env vars, infra) is handed to a human with steps.
+
+## How to run
+
+Requirements: Python 3.12, Node 20+, npm. Optional: Ollama for offline mode.
+
+```bash
+# backend
+cd backend
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env              # add at least one key: OPENAI_API_KEY, GEMINI_API_KEY or GROQ_API_KEY
+(cd demo/template && npm install) # once, for Fix mode
+uvicorn app.main:app --reload --port 8000     # API docs: http://localhost:8000/docs
+pytest -q                                     # 84 tests, no network needed
+
+# frontend (new terminal)
+cd frontend
+npm install
+cp .env.example .env.local        # BACKEND_URL=http://localhost:8000, APP_API_KEY = backend's
+npm run dev                       # http://localhost:3000
+```
+
+Re-check diagnosis quality on the bundled samples: `cd backend && python -m app.tools.eval_samples`.
+
+## Input formats
+
+- **Any plain-text build or deploy log** up to 200 KB: npm / Next.js / TypeScript builds, Docker builds, Kubernetes events and pod logs, Node runtime output, CI output (GitHub Actions, Render, Vercel…).
+- Paste it in the UI, pick one of the 8 bundled samples, or `POST /analyze` with `{"log": "...", "source": "vercel"}` (`?offline=true` forces the local model).
+- ANSI colours, timestamps and repeated lines are stripped; secrets (API keys, tokens, passwords, DB URLs, private keys, emails) are redacted **before** anything is stored or sent to an LLM.
+- Fix mode runs on the bundled TypeScript demo project with 5 broken scenarios (`missing-package`, `wrong-import`, `type-error`, `syntax-error`, `missing-env`).
+
+## AI approach
+
+1. **Regex + LLM.** A preprocessor keeps the error lines plus context. 13 regex patterns give a fast, deterministic hint (category, known cause, known fix, whether it is safe to auto-fix). One LLM call turns hint + log into a strict JSON diagnosis, validated with Pydantic. A known hand-off pattern always overrides the LLM's `auto_fixable`.
+2. **Fallback chain.** Groq → OpenAI → Gemini → OpenRouter → Ollama (local). Providers without a key are skipped; if every LLM fails, the pattern answer is returned, so Explain mode never goes blank. The response says which provider answered.
+3. **Single agent, two tools.** One plain Python loop (no frameworks, no sub-agents): build → diagnose → hand off *or* one tool call → patch → approval → apply → rebuild, capped at `AGENT_MAX_ATTEMPTS`. The LLM can only call `propose_edit(path, old, new)` or `install_package(name)`.
+4. **Guardrails.**
+   - Logs are untrusted data: redacted, wrapped in `<log>` tags, never executed.
+   - Builds run in a throwaway copy of the project; only `npm install`, `npm install <pkg>` and `npm run build` are allowed, as argv lists with `shell=False`, a timeout and a minimal env (no API keys reach child processes).
+   - File access goes through `safe_join`: no path escapes, no `.env*`, keys, `.git/`, `node_modules/` or lock files.
+   - Edits must match exactly once; package names are validated; every change is stored as a diff and needs approval.
+   - LLM keys live only in the backend; the browser talks to a Next.js server proxy that adds the backend API key.
+
+## Results
+
+Full table with every diagnosis: [`docs/RESULTS.md`](docs/RESULTS.md).
+
+| | Result |
+|---|---|
+| Explain, 8 sample logs | 8/8 correct pattern, all diagnosed by the LLM (OpenAI), avg 5.2 s |
+| Fix, 4 auto-fix scenarios | 4/4 `fixed` on the first attempt, 16–22 s per full run |
+| Fix, `missing-env` | handed off to a human with steps (never auto-fixed) |
+| Tests | 84 passing (sandbox whitelist, path traversal, `.env` blocking, agent loop, routes, LLM fallback) |
 
 ## Repo layout
 
-One GitHub repo, two independently deployable apps:
-
 ```
-fixloop/
-  CLAUDE.md                 # rules for Claude Code (read first)
-  .claude/skills/           # skills Claude Code loads automatically
-  docs/                     # architecture, plan, API, DB, security, deploy, prompts
-  backend/                  # FastAPI + SQLite + LLM router + agent  -> deploy to Render/Railway/any VM
-  frontend/                 # Next.js + Tailwind, Sky Ink design     -> deploy to Vercel
+backend/    FastAPI + SQLite + LLM router + agent   (deploys on its own)
+frontend/   Next.js + Tailwind, Sky Ink design      (deploys to Vercel)
+docs/       ARCHITECTURE, API, DATABASE, SECURITY, DEPLOYMENT, RESULTS
 ```
 
-The frontend never talks to an LLM and never holds LLM keys. It calls the backend through its own server-side proxy route, which adds the backend API key.
-
-## Quick start (local)
-
-Requirements: Python 3.12.8, Node 20+, npm. Optional: Ollama with a Qwen 2.5 coder model.
-
-```bash
-# 1. Backend
-cd backend
-python -m venv .venv
-# Windows: .venv\Scripts\activate   macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env          # then paste your GROQ_API_KEY and GEMINI_API_KEY
-cd demo/template && npm install && cd ../..   # installs TypeScript for the demo project once
-uvicorn app.main:app --reload --port 8000
-# open http://localhost:8000/docs
-
-# 2. Frontend (new terminal)
-cd frontend
-npm install
-cp .env.example .env.local    # BACKEND_URL=http://localhost:8000, same APP_API_KEY as backend
-npm run dev
-# open http://localhost:3000
-```
-
-## Building with Claude Code
-
-Open the **repo root** in Claude Code so it reads `CLAUDE.md` and the skills in `.claude/skills/`. Then paste the prompts from `docs/PROMPTS.md` in order. Each prompt names its owner, files and a "done when" check.
-
-## What already works in this starter
-
-| Part | State |
-|---|---|
-| Config, security helpers, SQLite schema + seeding | Working |
-| LLM router (Groq → OpenAI → Gemini → OpenRouter → Ollama) | Working, needs keys |
-| Preprocessor, pattern matcher (13 patterns), diagnoser | Working |
-| `POST /analyze`, `POST /feedback`, `GET /stats`, `GET /patterns`, `GET /health` | Working |
-| Sample logs (8) + demo project with 5 bug scenarios | Ready |
-| Sandbox runner, agent loop, Fix-mode routes | Stubs with contracts — build with `docs/PROMPTS.md` |
-| Frontend | Config, tokens, API client and proxy ready; screens to build |
-
-## Docs
-
-- `docs/ARCHITECTURE.md` — components and data flow
-- `docs/IMPLEMENTATION_PLAN.md` — schedule, roles, checkpoints, demo script
-- `docs/API.md` — every route with request/response
-- `docs/DATABASE.md` — tables and stats queries
-- `docs/SECURITY.md` — threat model and controls
-- `docs/DEPLOYMENT.md` — deploy backend and frontend separately from one repo
-- `docs/PROMPTS.md` — copy-paste prompts for Claude Code
+Backend and frontend share nothing but HTTP (`docs/API.md`). See `CLAUDE.md` for the team's build rules and `docs/PROMPTS.md` for the Claude Code prompts. Architecture and build plan (shared doc): https://claude.ai/artifact/WCvPfrkBfNiTwMkDaEVxEa
