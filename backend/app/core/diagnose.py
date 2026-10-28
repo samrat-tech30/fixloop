@@ -26,17 +26,35 @@ Return ONLY one JSON object, no markdown, with exactly these keys:
   "confidence": 0.0-1.0,
   "severity": "critical | warning | info",
   "evidence_lines": ["up to 5 lines copied exactly from the log that prove the cause"],
-  "fix_steps": ["3-6 concrete, ordered steps; put commands in backticks"],
+  "fix_steps": ["3-5 concrete, ordered steps; put commands in backticks"],
   "auto_fixable": true or false,
   "files_to_change": ["repo-relative file paths that must change, if known"]
 }
+
+summary:
+- At most 2 short sentences (under 40 words). Name the failing thing (package, pod, file, port) and the cause.
+- Start with the problem itself, e.g. "orders-api can't start: /app/dist/server.js is missing from the image."
+  Do not start with "The deployment failed because" or similar filler. No jargon the log doesn't use.
+
+fix_steps:
+- 3-5 steps, most likely fix first. Each step starts with a verb and contains a runnable command or an exact
+  file/setting change in backticks, e.g. "Run `npm install razorpay`" or "Set `resources.limits.memory: 512Mi` in the deployment".
+- Use the real names from the log (package, pod, namespace, port, image, file). Use <placeholders> only for values
+  the log does not show, never for real secret values.
+- No vague advice ("monitor", "test thoroughly", "optionally", "investigate further"). The last step verifies
+  the fix with a command, e.g. `npm run build` or `kubectl rollout status deployment/<name> -n <ns>`.
+- Every step needs a command or exact change; if you cannot give one, drop the step.
+- Steps must be consistent with each other and with the limits in the log
+  (e.g. a Node `--max-old-space-size` must stay below the container memory limit).
+
+confidence: 0.9+ only when an evidence line states the cause directly; 0.6-0.8 when the cause is inferred;
+below 0.5 when the log is not enough (and say so in the summary). Never return 1.0.
 
 Rules:
 - auto_fixable is true ONLY when the fix is editing source/config files inside the repository or installing an npm package.
   It is false for secrets, environment variables, memory/CPU limits, registry auth, permissions, network, DNS, databases, billing.
 - Never put real secret values in your answer. Values shown as [REDACTED] stay redacted.
-- If a pattern hint is given and matches the log, stay consistent with it but add specifics from the log.
-- If the log is not enough to be sure, say so in the summary and lower the confidence."""
+- If a pattern hint is given and matches the log, stay consistent with it but add specifics from the log."""
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.M)
 
